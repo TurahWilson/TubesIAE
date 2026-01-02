@@ -1,0 +1,18 @@
+version: "3.8"
+services:
+  auth-service:
+    build: ./auth-service
+
+  patient-service:
+    build: ./patient-service
+
+  doctor-service:
+    build: ./doctor-service
+
+  medical-service:
+    build: ./medical-service
+
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "8000:8000"
