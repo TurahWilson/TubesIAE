@@ -1,18 +1,152 @@
-version: "3.8"
 services:
+  postgres-auth:
+    image: postgres:15-alpine
+    container_name: postgres-auth
+    environment:
+      POSTGRES_DB: hospital_auth
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-auth-data:/var/lib/postgresql/data
+    networks:
+      - hospital-network
+    restart: unless-stopped
+
+  postgres-patients:
+    image: postgres:15-alpine
+    container_name: postgres-patients
+    environment:
+      POSTGRES_DB: hospital_patients
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-patients-data:/var/lib/postgresql/data
+    networks:
+      - hospital-network
+    restart: unless-stopped
+
+  postgres-doctors:
+    image: postgres:15-alpine
+    container_name: postgres-doctors
+    environment:
+      POSTGRES_DB: hospital_doctors
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres-doctors-data:/var/lib/postgresql/data
+    networks:
+      - hospital-network
+    restart: unless-stopped
+
+  postgres-records:
+    image: postgres:15-alpine
+    container_name: postgres-records
+    environment:
+      POSTGRES_DB: hospital_records
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres-records-data:/var/lib/postgresql/data
+    networks:
+      - hospital-network
+    restart: unless-stopped
+
   auth-service:
-    build: ./auth-service
+    build: ./1-auth_service
+    container_name: auth-service
+    ports:
+      - "8001:8001"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres-auth:5432/hospital_auth
+    depends_on:
+      - postgres-auth
+    networks:
+      - hospital-network
+    restart: on-failure
 
   patient-service:
-    build: ./patient-service
+    build: ./2-patient-service
+    container_name: patient-service
+    ports:
+      - "8002:8002"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres-patients:5432/hospital_patients
+    depends_on:
+      - postgres-patients
+    networks:
+      - hospital-network
+    restart: on-failure
 
   doctor-service:
-    build: ./doctor-service
+    build: ./3-doctor-service
+    container_name: doctor-service
+    ports:
+      - "8003:8003"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres-doctors:5432/hospital_doctors
+    depends_on:
+      - postgres-doctors
+    networks:
+      - hospital-network
+    restart: on-failure
 
-  medical-service:
-    build: ./medical-service
+  records-service:
+    build: ./4-records-service
+    container_name: records-service
+    ports:
+      - "8004:8004"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres-records:5432/hospital_records
+    depends_on:
+      - postgres-records
+    networks:
+      - hospital-network
+    restart: on-failure
 
   api-gateway:
     build: ./api-gateway
+    container_name: api-gateway
     ports:
       - "8000:8000"
+    environment:
+      AUTH_SERVICE_URL: http://auth-service:8001
+      PATIENT_SERVICE_URL: http://patient-service:8002
+      DOCTOR_SERVICE_URL: http://doctor-service:8003
+      RECORDS_SERVICE_URL: http://records-service:8004
+    depends_on:
+      - auth-service
+      - patient-service
+      - doctor-service
+      - records-service
+    networks:
+      - hospital-network
+    restart: on-failure
+
+  frontend:
+    image: nginx:alpine
+    container_name: frontend
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    networks:
+      - hospital-network
+    restart: unless-stopped
+
+volumes:
+  postgres-auth-data:
+  postgres-patients-data:
+  postgres-doctors-data:
+  postgres-records-data:
+
+networks:
+  hospital-network:
+    driver: bridge

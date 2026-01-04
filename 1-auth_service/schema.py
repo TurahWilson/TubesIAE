@@ -1,27 +1,28 @@
-import strawberry
-from sqlalchemy.orm import Session
-from database import SessionLocal
-from models import User
-from security import verify_password, create_access_token
+from pydantic import BaseModel, EmailStr
+from datetime import datetime
+from typing import Optional
 
-@strawberry.type
-class AuthPayload:
+class UserCreate(BaseModel):
+    email: EmailStr
+    full_name: str
+    password: str
+    role: str = "user"
+
+class UserResponse(BaseModel):
+    id: int
+    email: str
+    full_name: str
+    role: str
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class Token(BaseModel):
     access_token: str
+    token_type: str
+    role: str
 
-@strawberry.type
-class Mutation:
-    @strawberry.mutation
-    def login(self, username: str, password: str) -> AuthPayload:
-        db: Session = SessionLocal()
-        user = db.query(User).filter(User.username == username).first()
-        if not user or not verify_password(password, user.password):
-            raise Exception("Invalid credentials")
-
-        token = create_access_token({
-            "sub": str(user.id),
-            "username": user.username,
-            "role": user.role
-        })
-        return AuthPayload(access_token=token)
-
-schema = strawberry.Schema(mutation=Mutation)
+class TokenData(BaseModel):
+    email: Optional[str] = None
+    role: Optional[str] = None
