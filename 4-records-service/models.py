@@ -28,8 +28,9 @@ class PrescriptionItem(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     prescription_id = Column(Integer, ForeignKey("prescriptions.id"))
-    name = Column(String, nullable=False)
+    medicine_id = Column(Integer, nullable=False) # Changed/Added
+    medicine_name = Column(String, nullable=False) # Renamed from name
     quantity = Column(Integer, nullable=False)
-    notes = Column(String, nullable=True)
+    instructions = Column(String, nullable=True) # Renamed from notes
     
     prescription = relationship("Prescription", back_populates="items")

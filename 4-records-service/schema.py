@@ -20,9 +20,10 @@ class MedicalRecordResponse(MedicalRecordBase):
 
 # --- Prescription Schemas (New) ---
 class PrescriptionItemBase(BaseModel):
-    name: str
+    medicineId: int
+    medicineName: str
     quantity: int
-    notes: Optional[str] = None
+    instructions: Optional[str] = None
 
 class PrescriptionItemResponse(PrescriptionItemBase):
     pass

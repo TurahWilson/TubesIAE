@@ -84,9 +84,10 @@ def create_prescription(
     for item in prescription.items:
         db_item = models.PrescriptionItem(
             prescription_id=db_prescription.id,
-            name=item.name,
+            medicine_id=item.medicineId,
+            medicine_name=item.medicineName,
             quantity=item.quantity,
-            notes=item.notes
+            instructions=item.instructions
         )
         db.add(db_item)
     
@@ -133,9 +134,10 @@ def update_prescription(
         for item in update_data.items:
             db_item = models.PrescriptionItem(
                 prescription_id=id,
-                name=item.name,
+                medicine_id=item.medicineId,
+                medicine_name=item.medicineName,
                 quantity=item.quantity,
-                notes=item.notes
+                instructions=item.instructions
             )
             db.add(db_item)
             
