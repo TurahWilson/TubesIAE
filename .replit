@@ -1,1 +1,10 @@
 run = "python replit_main.py"
+modules = ["python-3.12", "web", "nodejs-20", "nix"]
+
+[nix]
+channel = "stable-25_05"
+packages = ["cargo", "libiconv", "libxcrypt", "rustc"]
+
+[[ports]]
+localPort = 8000
+externalPort = 80
