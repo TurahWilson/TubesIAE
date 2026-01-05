@@ -596,7 +596,7 @@ async function viewRecord(recordId) {
 
 async function loadPrescriptions() {
     try {
-        const response = await fetch(`${API_URL}/records/prescriptions`, {
+        const response = await fetch(`${API_URL}/api/prescriptions`, {
             headers: {
                 'Authorization': `Bearer ${authToken}`
             }
@@ -607,20 +607,19 @@ async function loadPrescriptions() {
             const tbody = document.querySelector('#prescriptionsTable tbody');
             tbody.innerHTML = '';
 
-            prescriptions.forEach(prescription => {
+            prescriptions.forEach(p => {
                 const row = `
                     <tr>
-                        <td>${prescription.prescription_id}</td>
-                        <td>${prescription.record_id}</td>
-                        <td>${prescription.medicine_recipe}</td>
-                        <td>${prescription.dosage}</td>
-                        <td>${prescription.instructions}</td>
+                        <td>${p.id}</td>
+                        <td>${p.patientName}</td>
+                        <td>${p.doctorName}</td>
+                        <td><span class="badge bg-${p.status === 'pending' ? 'warning' : 'success'}">${p.status}</span></td>
                         <td>
-                            <button class="btn btn-sm btn-info" onclick="viewPrescription(${prescription.prescription_id})">
+                            <button class="btn btn-sm btn-info" onclick="viewPrescription(${p.id})">
                                 <i class="fas fa-eye"></i>
                             </button>
                             ${userRole === 'admin' ? `
-                            <button class="btn btn-sm btn-danger" onclick="deletePrescription(${prescription.prescription_id})">
+                            <button class="btn btn-sm btn-danger" onclick="deletePrescription(${p.id})">
                                 <i class="fas fa-trash"></i>
                             </button>
                             ` : ''}
@@ -639,14 +638,21 @@ document.getElementById('addPrescriptionForm').addEventListener('submit', async 
     e.preventDefault();
 
     const prescriptionData = {
-        record_id: parseInt(document.getElementById('prescriptionRecordId').value),
-        dosage: document.getElementById('prescriptionDosage').value,
-        instructions: document.getElementById('prescriptionInstructions').value,
-        medicine_recipe: document.getElementById('prescriptionMedicine').value
+        patientName: document.getElementById('prescriptionPatientName').value,
+        doctorName: document.getElementById('prescriptionDoctorName').value,
+        status: "pending",
+        items: [
+            {
+                medicineId: parseInt(document.getElementById('prescriptionMedId').value),
+                medicineName: document.getElementById('prescriptionMedName').value,
+                quantity: parseInt(document.getElementById('prescriptionQty').value),
+                instructions: document.getElementById('prescriptionInstructions').value
+            }
+        ]
     };
 
     try {
-        const response = await fetch(`${API_URL}/records/prescriptions`, {
+        const response = await fetch(`${API_URL}/api/prescriptions`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -663,7 +669,7 @@ document.getElementById('addPrescriptionForm').addEventListener('submit', async 
             loadDashboardData();
         } else {
             const error = await response.json();
-            alert('Failed to add prescription: ' + (error.detail || 'Unknown error'));
+            alert('Failed to add prescription: ' + (error.detail ? JSON.stringify(error.detail) : 'Unknown error'));
         }
     } catch (error) {
         alert('Error: ' + error.message);
@@ -674,7 +680,7 @@ async function deletePrescription(prescriptionId) {
     if (!confirm('Are you sure you want to delete this prescription?')) return;
 
     try {
-        const response = await fetch(`${API_URL}/records/prescriptions/${prescriptionId}`, {
+        const response = await fetch(`${API_URL}/api/prescriptions/${prescriptionId}`, {
             method: 'DELETE',
             headers: {
                 'Authorization': `Bearer ${authToken}`
@@ -695,16 +701,30 @@ async function deletePrescription(prescriptionId) {
 
 async function viewPrescription(prescriptionId) {
     try {
-        const response = await fetch(`${API_URL}/records/prescriptions/${prescriptionId}`, {
+        const response = await fetch(`${API_URL}/api/prescriptions/${prescriptionId}`, {
             headers: { 'Authorization': `Bearer ${authToken}` }
         });
         if (response.ok) {
-            const prescription = await response.json();
-            document.getElementById('viewPrescriptionId').textContent = prescription.prescription_id;
-            document.getElementById('viewPrescriptionRecordId').textContent = prescription.record_id;
-            document.getElementById('viewPrescriptionMedicine').textContent = prescription.medicine_recipe;
-            document.getElementById('viewPrescriptionDosage').textContent = prescription.dosage;
-            document.getElementById('viewPrescriptionInstructions').textContent = prescription.instructions;
+            const p = await response.json();
+            document.getElementById('viewPrescriptionId').textContent = p.id;
+            document.getElementById('viewPrescriptionPatient').textContent = p.patientName;
+            document.getElementById('viewPrescriptionDoctor').textContent = p.doctorName;
+            document.getElementById('viewPrescriptionStatus').textContent = p.status;
+
+            const itemsContainer = document.getElementById('viewPrescriptionItems');
+            itemsContainer.innerHTML = '';
+            if (p.items && p.items.length > 0) {
+                const ul = document.createElement('ul');
+                p.items.forEach(item => {
+                    const li = document.createElement('li');
+                    li.textContent = `${item.medicineName} (Qty: ${item.quantity}) - ${item.instructions}`;
+                    ul.appendChild(li);
+                });
+                itemsContainer.appendChild(ul);
+            } else {
+                itemsContainer.textContent = 'No items.';
+            }
+
             new bootstrap.Modal(document.getElementById('viewPrescriptionModal')).show();
         } else {
             const error = await response.json();
