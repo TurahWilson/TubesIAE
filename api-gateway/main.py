@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 import httpx
 import os
 
@@ -44,9 +44,11 @@ async def forward_request(service: str, path: str, request: Request):
                 content=body,
                 params=request.query_params
             )
-            return JSONResponse(
-                content=response.json() if response.content else None,
-                status_code=response.status_code
+            # Return raw content to preserve original response (HTML, Text, or JSON)
+            return Response(
+                content=response.content,
+                status_code=response.status_code,
+                headers=dict(response.headers)
             )
         except Exception as e:
             # More robust error handling for JSON decode
