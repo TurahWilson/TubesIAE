@@ -1,4 +1,1 @@
-modules = [
-    "python-3.10"
-];
 run = "python replit_main.py"
