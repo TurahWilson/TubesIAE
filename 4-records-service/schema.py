@@ -1,33 +1,53 @@
 from pydantic import BaseModel
+from typing import List, Optional
 from datetime import datetime
 
-class MedicalRecordCreate(BaseModel):
+# --- Medical Record Schemas (Existing) ---
+class MedicalRecordBase(BaseModel):
     patient_id: int
     doctor_id: int
     diagnosis: str
 
-class MedicalRecordResponse(BaseModel):
+class MedicalRecordCreate(MedicalRecordBase):
+    pass
+
+class MedicalRecordResponse(MedicalRecordBase):
     record_id: int
-    patient_id: int
-    doctor_id: int
-    diagnosis: str
     created_at: datetime
     
     class Config:
-        from_attributes = True
+        orm_mode = True
+
+# --- Prescription Schemas (New) ---
+class PrescriptionItemBase(BaseModel):
+    name: str
+    quantity: int
+    notes: Optional[str] = None
+
+class PrescriptionItemResponse(PrescriptionItemBase):
+    pass
+    class Config:
+        orm_mode = True
 
 class PrescriptionCreate(BaseModel):
-    record_id: int
-    dosage: str
-    instructions: str
-    medicine_recipe: str
+    patientName: str
+    doctorName: str
+    status: str = "pending"
+    items: List[PrescriptionItemBase]
+
+class PrescriptionUpdate(BaseModel):
+    patientName: Optional[str] = None
+    doctorName: Optional[str] = None
+    status: Optional[str] = None
+    items: Optional[List[PrescriptionItemBase]] = None
 
 class PrescriptionResponse(BaseModel):
-    prescription_id: int
-    record_id: int
-    dosage: str
-    instructions: str
-    medicine_recipe: str
+    id: int
+    patientName: str
+    doctorName: str
+    status: str
+    createdAt: datetime
+    items: List[PrescriptionItemResponse]
     
     class Config:
-        from_attributes = True
+        orm_mode = True

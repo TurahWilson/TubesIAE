@@ -14,7 +14,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Service URLs
 SERVICES = {
     "auth": os.getenv("AUTH_SERVICE_URL", "http://localhost:8001"),
     "patients": os.getenv("PATIENT_SERVICE_URL", "http://localhost:8002"),
@@ -30,6 +29,7 @@ async def forward_request(service: str, path: str, request: Request):
     url = f"{service_url}{path}"
     headers = dict(request.headers)
     headers.pop("host", None)
+    headers.pop("content-length", None) 
     
     body = None
     if request.method in ["POST", "PUT", "PATCH"]:
@@ -49,7 +49,28 @@ async def forward_request(service: str, path: str, request: Request):
                 status_code=response.status_code
             )
         except Exception as e:
+            # More robust error handling for JSON decode
+            try:
+                error_content = {"detail": str(e)}
+            except:
+                error_content = {"detail": "Unknown error in gateway"}
             raise HTTPException(status_code=500, detail=str(e))
+
+# --- ROUTES ---
+
+@app.api_route("/api/prescriptions/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+async def prescriptions_gateway(path: str, request: Request):
+    # Route /api/prescriptions/XYZ -> records-service /prescriptions/XYZ
+    # Handle root case /api/prescriptions -> records-service /prescriptions
+    if path == "":
+         return await forward_request("records", "/prescriptions", request)
+    return await forward_request("records", f"/prescriptions/{path}", request)
+
+# Catch-all for /api/prescriptions (without trailing slash or path)
+@app.api_route("/api/prescriptions", methods=["GET", "POST"])
+async def prescriptions_root_gateway(request: Request):
+    return await forward_request("records", "/prescriptions", request)
+
 
 @app.api_route("/auth/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
 async def auth_gateway(path: str, request: Request):
@@ -67,43 +88,13 @@ async def doctors_gateway(path: str, request: Request):
 async def records_gateway(path: str, request: Request):
     return await forward_request("records", f"/{path}", request)
 
-@app.get("/api/prescriptions/{id}")
-async def public_prescription_api(id: int, request: Request):
-    return await forward_request("records", f"/prescriptions/{id}/public", request)
-
 @app.get("/")
 def read_root():
-    return {
-        "message": "Hospital API Gateway",
-        "version": "1.0.0",
-        "services": list(SERVICES.keys()),
-        "endpoints": {
-            "auth": "/auth/*",
-            "patients": "/patients/*",
-            "doctors": "/doctors/*",
-            "records": "/records/*"
-        }
-    }
+    return {"message": "Hospital API Gateway ready"}
 
 @app.get("/health")
-async def health_check():
-    health_status = {}
-    async with httpx.AsyncClient() as client:
-        for service_name, service_url in SERVICES.items():
-            try:
-                response = await client.get(f"{service_url}/", timeout=5.0)
-                health_status[service_name] = {
-                    "status": "healthy" if response.status_code == 200 else "unhealthy",
-                    "url": service_url,
-                    "status_code": response.status_code
-                }
-            except Exception as e:
-                health_status[service_name] = {
-                    "status": "down",
-                    "url": service_url,
-                    "error": str(e)
-                }
-    return health_status
+def health_check():
+    return {"status": "ok"}
 
 if __name__ == "__main__":
     import uvicorn

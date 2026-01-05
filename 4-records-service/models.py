@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
 
@@ -14,8 +15,21 @@ class MedicalRecord(Base):
 class Prescription(Base):
     __tablename__ = "prescriptions"
     
-    prescription_id = Column(Integer, primary_key=True, index=True)
-    record_id = Column(Integer, nullable=False)
-    dosage = Column(String, nullable=False)
-    instructions = Column(String, nullable=False)
-    medicine_recipe = Column(String, nullable=False)
+    id = Column(Integer, primary_key=True, index=True) # Changed from prescription_id to match request "id"
+    patientName = Column(String, nullable=False)
+    doctorName = Column(String, nullable=False)
+    status = Column(String, default="pending")
+    createdAt = Column(DateTime(timezone=True), server_default=func.now())
+    
+    items = relationship("PrescriptionItem", back_populates="prescription", cascade="all, delete-orphan")
+
+class PrescriptionItem(Base):
+    __tablename__ = "prescription_items"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    prescription_id = Column(Integer, ForeignKey("prescriptions.id"))
+    name = Column(String, nullable=False)
+    quantity = Column(Integer, nullable=False)
+    notes = Column(String, nullable=True)
+    
+    prescription = relationship("Prescription", back_populates="items")
