@@ -1,73 +1,11 @@
 services:
-  postgres-auth:
-    image: postgres:15-alpine
-    container_name: postgres-auth
-    environment:
-      POSTGRES_DB: hospital_auth
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres-auth-data:/var/lib/postgresql/data
-    networks:
-      - hospital-network
-    restart: unless-stopped
-
-  postgres-patients:
-    image: postgres:15-alpine
-    container_name: postgres-patients
-    environment:
-      POSTGRES_DB: hospital_patients
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5433:5432"
-    volumes:
-      - postgres-patients-data:/var/lib/postgresql/data
-    networks:
-      - hospital-network
-    restart: unless-stopped
-
-  postgres-doctors:
-    image: postgres:15-alpine
-    container_name: postgres-doctors
-    environment:
-      POSTGRES_DB: hospital_doctors
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5434:5432"
-    volumes:
-      - postgres-doctors-data:/var/lib/postgresql/data
-    networks:
-      - hospital-network
-    restart: unless-stopped
-
-  postgres-records:
-    image: postgres:15-alpine
-    container_name: postgres-records
-    environment:
-      POSTGRES_DB: hospital_records
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5435:5432"
-    volumes:
-      - postgres-records-data:/var/lib/postgresql/data
-    networks:
-      - hospital-network
-    restart: unless-stopped
-
   auth-service:
     build: ./1-auth_service
     container_name: auth-service
     ports:
       - "8001:8001"
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres-auth:5432/hospital_auth
-    depends_on:
-      - postgres-auth
+      DATABASE_URL: sqlite:///./auth.db
     networks:
       - hospital-network
     restart: on-failure
@@ -78,9 +16,7 @@ services:
     ports:
       - "8002:8002"
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres-patients:5432/hospital_patients
-    depends_on:
-      - postgres-patients
+      DATABASE_URL: sqlite:///./patient.db
     networks:
       - hospital-network
     restart: on-failure
@@ -91,9 +27,7 @@ services:
     ports:
       - "8003:8003"
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres-doctors:5432/hospital_doctors
-    depends_on:
-      - postgres-doctors
+      DATABASE_URL: sqlite:///./doctor.db
     networks:
       - hospital-network
     restart: on-failure
@@ -104,9 +38,7 @@ services:
     ports:
       - "8004:8004"
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres-records:5432/hospital_records
-    depends_on:
-      - postgres-records
+      DATABASE_URL: sqlite:///./records.db
     networks:
       - hospital-network
     restart: on-failure
@@ -140,12 +72,6 @@ services:
     networks:
       - hospital-network
     restart: unless-stopped
-
-volumes:
-  postgres-auth-data:
-  postgres-patients-data:
-  postgres-doctors-data:
-  postgres-records-data:
 
 networks:
   hospital-network:
