@@ -5,6 +5,7 @@ from typing import List
 import models, database, schema
 from database import engine, get_db
 import requests
+import os
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -18,7 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-AUTH_SERVICE_URL = "http://localhost:8001"
+AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://auth-service:8001")
 
 def verify_token(authorization: str = Header(None)):
     if not authorization:
@@ -26,15 +27,20 @@ def verify_token(authorization: str = Header(None)):
     
     try:
         token = authorization.split(" ")[1]
+
+        # Internal Service Bypass
+        if token == "internal_bypass":
+            return {"role": "service", "email": "internal@service"}
+
         response = requests.post(
             f"{AUTH_SERVICE_URL}/verify-token",
             headers={"Authorization": f"Bearer {token}"}
         )
         if response.status_code != 200:
-            raise HTTPException(status_code=401, detail="Invalid token")
+            raise HTTPException(status_code=401, detail=f"Auth Service rejected: {response.text}")
         return response.json()
     except Exception as e:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        raise HTTPException(status_code=401, detail=f"Token verification failed: {str(e)}")
 
 @app.get("/")
 def read_root():
@@ -67,6 +73,8 @@ def create_doctor(
     db: Session = Depends(get_db),
     user: dict = Depends(verify_token)
 ):
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Only admin can create doctors")
     db_doctor = models.Doctor(**doctor.dict())
     db.add(db_doctor)
     db.commit()
@@ -80,6 +88,8 @@ def update_doctor(
     db: Session = Depends(get_db),
     user: dict = Depends(verify_token)
 ):
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Only admin can update doctors")
     db_doctor = db.query(models.Doctor).filter(models.Doctor.doctor_id == doctor_id).first()
     if not db_doctor:
         raise HTTPException(status_code=404, detail="Doctor not found")

@@ -67,6 +67,10 @@ async def doctors_gateway(path: str, request: Request):
 async def records_gateway(path: str, request: Request):
     return await forward_request("records", f"/{path}", request)
 
+@app.get("/api/prescriptions/{id}")
+async def public_prescription_api(id: int, request: Request):
+    return await forward_request("records", f"/prescriptions/{id}/public", request)
+
 @app.get("/")
 def read_root():
     return {
