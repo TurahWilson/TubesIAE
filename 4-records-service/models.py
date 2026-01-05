@@ -34,3 +34,11 @@ class PrescriptionItem(Base):
     instructions = Column(String, nullable=True) # Renamed from notes
     
     prescription = relationship("Prescription", back_populates="items")
+
+    @property
+    def medicineId(self):
+        return self.medicine_id
+
+    @property
+    def medicineName(self):
+        return self.medicine_name

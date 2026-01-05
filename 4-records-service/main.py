@@ -70,30 +70,35 @@ def create_prescription(
     db: Session = Depends(get_db),
     # user: dict = Depends(verify_token) # Optional: Enforce auth
 ):
-    # Create Prescription
-    db_prescription = models.Prescription(
-        patientName=prescription.patientName,
-        doctorName=prescription.doctorName,
-        status=prescription.status
-    )
-    db.add(db_prescription)
-    db.commit()
-    db.refresh(db_prescription)
-    
-    # Create Items
-    for item in prescription.items:
-        db_item = models.PrescriptionItem(
-            prescription_id=db_prescription.id,
-            medicine_id=item.medicineId,
-            medicine_name=item.medicineName,
-            quantity=item.quantity,
-            instructions=item.instructions
+    try:
+        # Create Prescription
+        db_prescription = models.Prescription(
+            patientName=prescription.patientName,
+            doctorName=prescription.doctorName,
+            status=prescription.status
         )
-        db.add(db_item)
-    
-    db.commit()
-    db.refresh(db_prescription)
-    return db_prescription
+        db.add(db_prescription)
+        db.commit()
+        db.refresh(db_prescription)
+        
+        # Create Items
+        for item in prescription.items:
+            db_item = models.PrescriptionItem(
+                prescription_id=db_prescription.id,
+                medicine_id=item.medicineId,
+                medicine_name=item.medicineName,
+                quantity=item.quantity,
+                instructions=item.instructions
+            )
+            db.add(db_item)
+        
+        db.commit()
+        db.refresh(db_prescription)
+        return db_prescription
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/prescriptions", response_model=List[schema.PrescriptionResponse])
 def get_all_prescriptions(

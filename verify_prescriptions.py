@@ -23,7 +23,8 @@ def test_crud():
         print(f"Status: {response.status_code}")
         print(f"Response: {response.text}")
         if response.status_code != 200:
-            print("FAILED to create")
+            print(f"FAILED to create. Status: {response.status_code}")
+            print(f"Raw Response: {response.text}")
             return
         data = response.json()
         prescription_id = data["id"]
