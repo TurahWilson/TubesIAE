@@ -20,6 +20,18 @@ def main():
     print("Starting microservices...")
     for service_dir, port in services:
         print(f"Starting {service_dir} on port {port}...")
+        # Prepare environment variables
+        env = os.environ.copy()
+        # Set specific database URL for each service to avoid Replit's default Postgres URL
+        if "auth" in service_dir:
+            env["DATABASE_URL"] = "sqlite:///./auth.db"
+        elif "patient" in service_dir:
+            env["DATABASE_URL"] = "sqlite:///./patient.db"
+        elif "doctor" in service_dir:
+            env["DATABASE_URL"] = "sqlite:///./doctor.db"
+        elif "records" in service_dir:
+            env["DATABASE_URL"] = "sqlite:///./records.db"
+
         # Run uvicorn in the service directory to ensure local imports work
         cmd = [
             sys.executable, "-m", "uvicorn", 
@@ -28,8 +40,9 @@ def main():
             "--port", str(port)
         ]
         # We use cwd so 'import database' etc work naturally
-        proc = subprocess.Popen(cmd, cwd=service_dir)
+        proc = subprocess.Popen(cmd, cwd=service_dir, env=env)
         procs.append(proc)
+
 
     # Give services a moment to spin up
     print("Waiting for services to initialize...")
