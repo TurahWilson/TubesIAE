@@ -2,3 +2,7 @@
 venv/
 env/
 ENV/
+.venv/
+*.db
+__pycache__/
+*.pyc
