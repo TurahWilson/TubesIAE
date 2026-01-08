@@ -637,12 +637,12 @@ async function loadPrescriptions() {
             // Auto-check stock for all prescriptions
             prescriptions.forEach(p => {
                 if (p.items && p.items.length > 0) {
-                    checkAvailability(p.id, p.items[0].medicineName);
+                    checkAvailability(p.id, p.items);
                 }
             });
 
             // Set up auto-refresh every 5 seconds
-            startAutoRefresh(prescriptions);
+            startAutoRefresh();
         }
     } catch (error) {
         console.error('Error loading prescriptions:', error);
@@ -650,27 +650,23 @@ async function loadPrescriptions() {
 }
 
 // Store interval ID for cleanup
-let stockRefreshInterval = null;
+let prescriptionRefreshInterval = null;
 
-function startAutoRefresh(prescriptions) {
+function startAutoRefresh() {
     // Clear existing interval if any
-    if (stockRefreshInterval) {
-        clearInterval(stockRefreshInterval);
+    if (prescriptionRefreshInterval) {
+        clearInterval(prescriptionRefreshInterval);
     }
 
-    // Refresh every 5 seconds
-    stockRefreshInterval = setInterval(() => {
-        prescriptions.forEach(p => {
-            if (p.items && p.items.length > 0) {
-                checkAvailability(p.id, p.items[0].medicineName);
-            }
-        });
+    // Refresh every 5 seconds - reload entire prescription list
+    prescriptionRefreshInterval = setInterval(() => {
+        loadPrescriptions();
     }, 5000);
 }
 
 // Function to check availability in external Pharmacy API
-async function checkAvailability(prescriptionId, medicineName) {
-    if (!medicineName) {
+async function checkAvailability(prescriptionId, medicineItems) {
+    if (!medicineItems || medicineItems.length === 0) {
         return;
     }
 
@@ -691,35 +687,45 @@ async function checkAvailability(prescriptionId, medicineName) {
     `;
 
     try {
-        const response = await fetch(PHARMACY_API_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-            },
-            body: JSON.stringify({
-                query: query,
-                variables: { name: medicineName }
-            })
-        });
+        // Check all medicines in the prescription
+        const stockChecks = await Promise.all(
+            medicineItems.map(async (item) => {
+                try {
+                    const response = await fetch(PHARMACY_API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            query: query,
+                            variables: { name: item.medicineName }
+                        })
+                    });
 
-        if (response.ok) {
-            const result = await response.json();
-            if (result.data && result.data.checkStock) {
-                const stock = result.data.checkStock.stock;
-                if (stock > 0) {
-                    statusSpan.innerHTML = `<span class="badge bg-success">Available (${stock})</span>`;
-                } else {
-                    statusSpan.innerHTML = `<span class="badge bg-danger">Out of Stock</span>`;
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.data && result.data.checkStock) {
+                            return result.data.checkStock.stock > 0;
+                        }
+                    }
+                    return false;
+                } catch (error) {
+                    console.error(`Error checking stock for ${item.medicineName}:`, error);
+                    return false;
                 }
-            } else {
-                statusSpan.innerHTML = `<span class="badge bg-secondary">Unknown</span>`;
-                console.warn("Unexpected GraphQL response:", result);
-            }
+            })
+        );
+
+        // Check if ALL medicines are available
+        const allAvailable = stockChecks.every(available => available === true);
+
+        if (allAvailable) {
+            statusSpan.innerHTML = `<span class="badge bg-success">Tersedia</span>`;
         } else {
-            console.error("Pharmacy API Error:", response.status, response.statusText);
-            statusSpan.innerHTML = `<span class="badge bg-danger">API Error</span>`;
+            statusSpan.innerHTML = `<span class="badge bg-danger">Tidak Tersedia</span>`;
         }
+
     } catch (error) {
         console.error("Network Error checking stock:", error);
         statusSpan.innerHTML = `<span class="badge bg-danger">Network Error</span>`;
