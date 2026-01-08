@@ -53,15 +53,42 @@ def get_prescription_validation(id: str, db: Session) -> PrescriptionResult:
         return PrescriptionResult(isValid=False, patientName=None, medicines=None)
 
 @strawberry.type
+class PrescriptionUpdateResult:
+    success: bool
+    message: str
+
+def update_prescription_status(id: str, status: str, db: Session) -> PrescriptionUpdateResult:
+    try:
+        print(f"Updating prescription id: {id} to status: {status}")
+        prescription_id = int(id)
+        prescription = db.query(models.Prescription).filter(models.Prescription.id == prescription_id).first()
+        
+        if not prescription:
+            return PrescriptionUpdateResult(success=False, message="Prescription not found")
+        
+        prescription.status = status
+        db.commit()
+        db.refresh(prescription)
+        
+        return PrescriptionUpdateResult(success=True, message=f"Status updated to {status}")
+    except ValueError:
+        return PrescriptionUpdateResult(success=False, message="Invalid ID format")
+    except Exception as e:
+        print(f"Error updating prescription: {e}")
+        return PrescriptionUpdateResult(success=False, message=str(e))
+
+@strawberry.type
 class Query:
     @strawberry.field
     def validatePrescription(self, id: str, info) -> PrescriptionResult:
-        # Get DB session from context
-        # Strawberry doesn't automatically inject FastAPI dependencies into resolvers directly 
-        # unless configured with a custom context getter.
-        # However, for simplicity using a context getter in main.py is the standard way.
-        
         db = info.context["db"]
         return get_prescription_validation(id, db)
 
-schema = strawberry.Schema(query=Query)
+@strawberry.type
+class Mutation:
+    @strawberry.field
+    def updatePrescriptionStatus(self, id: str, status: str, info) -> PrescriptionUpdateResult:
+        db = info.context["db"]
+        return update_prescription_status(id, status, db)
+
+schema = strawberry.Schema(query=Query, mutation=Mutation)

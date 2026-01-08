@@ -40,7 +40,6 @@ def verify_token(authorization: str = Header(None)):
             raise HTTPException(status_code=401, detail=f"Auth Service rejected: {response.text}")
         return response.json()
     except Exception as e:
-        print(f"DEBUG PATIENT: Token verification failed: {str(e)}")
         raise HTTPException(status_code=401, detail=f"Token verification failed: {str(e)}")
 
 @app.get("/")
