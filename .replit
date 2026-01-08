@@ -1,4 +1,4 @@
-run = "python replit_main.py"
+run = "pip install -r requirements.txt && python replit_main.py"
 modules = ["python-3.12", "web", "nodejs-20", "nix"]
 
 [nix]
