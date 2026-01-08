@@ -99,7 +99,8 @@ def verify_token(token: str = Depends(oauth2_scheme)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return {"valid": True, "email": payload.get("sub"), "role": payload.get("role")}
-    except JWTError:
+    except JWTError as e:
+        print(f"DEBUG AUTH: Verification failed. Error: {e}, Token: {token}")
         raise HTTPException(status_code=401, detail="Invalid token")
 
 if __name__ == "__main__":
