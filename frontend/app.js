@@ -681,8 +681,8 @@ async function checkAvailability(prescriptionId, medicineName) {
 
         if (response.ok) {
             const result = await response.json();
-            if (result.data && result.data.medicine) {
-                const stock = result.data.medicine.stock;
+            if (result.data && result.data.checkStock) {
+                const stock = result.data.checkStock.stock;
                 statusSpan.style.display = 'inline';
                 if (stock > 0) {
                     statusSpan.innerHTML = `<span class="badge bg-success">Available (${stock})</span>`;
