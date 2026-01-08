@@ -7,9 +7,17 @@ import models, database, schema
 from database import engine, get_db
 import requests
 import os
+import strawberry
+from strawberry.fastapi import GraphQLRouter
+from graphql_schema import schema as strawberry_schema
 
 # Create tables
 models.Base.metadata.create_all(bind=engine)
+
+def get_context(db: Session = Depends(get_db)):
+    return {"db": db}
+
+graphql_app = GraphQLRouter(strawberry_schema, context_getter=get_context)
 
 app = FastAPI(title="Hospital Records Service", version="1.0.0")
 
@@ -20,6 +28,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(graphql_app, prefix="/graphql")
 
 AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://localhost:8001")
 
