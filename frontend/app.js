@@ -615,6 +615,12 @@ async function loadPrescriptions() {
                         <td>${p.doctorName}</td>
                         <td><span class="badge bg-${p.status === 'pending' ? 'warning' : 'success'}">${p.status}</span></td>
                         <td>
+                            <button id="btn-check-${p.id}" class="btn btn-sm btn-secondary" onclick="checkAvailability(${p.id}, '${p.items && p.items.length > 0 ? p.items[0].medicineName : ''}')">
+                                Check Stock
+                            </button>
+                            <span id="stock-status-${p.id}" style="display:none; margin-left: 5px;"></span>
+                        </td>
+                        <td>
                             <button class="btn btn-sm btn-info" onclick="viewPrescription(${p.id})">
                                 <i class="fas fa-eye"></i>
                             </button>
@@ -631,6 +637,80 @@ async function loadPrescriptions() {
         }
     } catch (error) {
         console.error('Error loading prescriptions:', error);
+    }
+}
+
+// Function to check availability in external Pharmacy API
+async function checkAvailability(prescriptionId, medicineName) {
+    if (!medicineName) {
+        alert('No medicine name in this prescription.');
+        return;
+    }
+
+    const btn = document.getElementById(`btn-check-${prescriptionId}`);
+    const statusSpan = document.getElementById(`stock-status-${prescriptionId}`);
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+
+    // URL External Pharmacy
+    const PHARMACY_API_URL = "https://92a0e4ea-c2f1-4418-a38c-8a295310ccae-00-2gpabn86re6nk.riker.replit.dev/graphql";
+
+    // Query to check stock (Assuming schema)
+    const query = `
+        query CheckStock($name: String!) {
+             medicine(name: $name) {
+                 stock
+                 name
+             }
+        }
+    `;
+
+    try {
+        const response = await fetch(PHARMACY_API_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({
+                query: query,
+                variables: { name: medicineName }
+            })
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            if (result.data && result.data.medicine) {
+                const stock = result.data.medicine.stock;
+                statusSpan.style.display = 'inline';
+                if (stock > 0) {
+                    statusSpan.innerHTML = `<span class="badge bg-success">Available (${stock})</span>`;
+                } else {
+                    statusSpan.innerHTML = `<span class="badge bg-danger">Out of Stock</span>`;
+                }
+                btn.style.display = 'none';
+            } else {
+                // Try fallback if structure is different
+                statusSpan.style.display = 'inline';
+                statusSpan.innerHTML = `<span class="badge bg-secondary">Unknown (No Data)</span>`;
+                console.warn("Unexpected GraphQL response:", result);
+            }
+        } else {
+            console.error("Pharmacy API Error:", response.status, response.statusText);
+            // Verify if it's CORS or 404
+            statusSpan.style.display = 'inline';
+            statusSpan.innerHTML = `<span class="badge bg-danger">API Error</span>`;
+        }
+    } catch (error) {
+        console.error("Network Error checking stock:", error);
+        statusSpan.style.display = 'inline';
+        statusSpan.innerHTML = `<span class="badge bg-danger">Network Error</span>`;
+    } finally {
+        if (btn.style.display !== 'none') {
+            btn.disabled = false;
+            btn.textContent = 'Check Stock';
+        }
     }
 }
 
