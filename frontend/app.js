@@ -654,12 +654,12 @@ async function checkAvailability(prescriptionId, medicineName) {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
 
     // URL External Pharmacy
-    const PHARMACY_API_URL = "https://92a0e4ea-c2f1-4418-a38c-8a295310ccae-00-2gpabn86re6nk.riker.replit.dev/graphql";
+    const PHARMACY_API_URL = "https://92a0e4ea-c2f1-4418-a38c-8a295310ccae-00-2gpabn86re6nk.riker.replit.dev/api/inventory";
 
     // Query to check stock (Assuming schema)
     const query = `
         query CheckStock($name: String!) {
-             medicine(name: $name) {
+             checkStock(medicineName: $name) {
                  stock
                  name
              }
