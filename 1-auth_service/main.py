@@ -96,17 +96,26 @@ def read_users_me(current_user: models.User = Depends(get_current_user)):
 
 @app.post("/verify-token")
 def verify_token(authorization: str = Header(None)):
+    # Debug logging
+    print(f"[verify-token] Received authorization header: {authorization}")
+    
     if not authorization:
+        print("[verify-token] ERROR: No authorization header provided")
         raise HTTPException(status_code=401, detail="No authorization header")
     
     try:
         # Extract token from "Bearer <token>"
         token = authorization.split(" ")[1] if " " in authorization else authorization
+        print(f"[verify-token] Extracted token: {token[:20]}...")
+        
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        print(f"[verify-token] Token validated for user: {payload.get('sub')}")
         return {"valid": True, "email": payload.get("sub"), "role": payload.get("role")}
-    except JWTError:
+    except JWTError as e:
+        print(f"[verify-token] JWT Error: {str(e)}")
         raise HTTPException(status_code=401, detail="Invalid token")
     except Exception as e:
+        print(f"[verify-token] Exception: {str(e)}")
         raise HTTPException(status_code=401, detail=f"Token verification failed: {str(e)}")
 
 if __name__ == "__main__":
