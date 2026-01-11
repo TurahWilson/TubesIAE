@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Header
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -95,12 +95,19 @@ def read_users_me(current_user: models.User = Depends(get_current_user)):
     return current_user
 
 @app.post("/verify-token")
-def verify_token(token: str = Depends(oauth2_scheme)):
+def verify_token(authorization: str = Header(None)):
+    if not authorization:
+        raise HTTPException(status_code=401, detail="No authorization header")
+    
     try:
+        # Extract token from "Bearer <token>"
+        token = authorization.split(" ")[1] if " " in authorization else authorization
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return {"valid": True, "email": payload.get("sub"), "role": payload.get("role")}
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Token verification failed: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

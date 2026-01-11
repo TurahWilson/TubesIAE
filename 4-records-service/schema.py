@@ -16,7 +16,7 @@ class MedicalRecordResponse(MedicalRecordBase):
     created_at: datetime
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 # --- Prescription Schemas (New) ---
 class PrescriptionItemBase(BaseModel):
@@ -28,7 +28,7 @@ class PrescriptionItemBase(BaseModel):
 class PrescriptionItemResponse(PrescriptionItemBase):
     pass
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class PrescriptionCreate(BaseModel):
     patientName: str
@@ -51,4 +51,4 @@ class PrescriptionResponse(BaseModel):
     items: List[PrescriptionItemResponse]
     
     class Config:
-        orm_mode = True
+        from_attributes = True
