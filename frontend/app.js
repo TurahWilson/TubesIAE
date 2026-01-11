@@ -3,6 +3,28 @@ let authToken = localStorage.getItem('authToken');
 let userRole = localStorage.getItem('userRole');
 let userEmail = localStorage.getItem('userEmail');
 
+// Global function to handle 401 errors and auto-logout
+function handleUnauthorized() {
+    console.log('Token expired or invalid. Logging out...');
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userEmail');
+    if (document.getElementById('loginPage')) {
+        document.getElementById('loginPage').style.display = 'block';
+        document.getElementById('dashboardPage').style.display = 'none';
+    }
+}
+
+// Global fetch wrapper to handle 401 errors automatically
+const originalFetch = window.fetch;
+window.fetch = async function (...args) {
+    const response = await originalFetch.apply(this, args);
+    if (response.status === 401) {
+        handleUnauthorized();
+    }
+    return response;
+};
+
 // Show/Hide Login and Register Forms
 document.getElementById('showRegister').addEventListener('click', (e) => {
     e.preventDefault();
